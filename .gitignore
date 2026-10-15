@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# Conda
+.conda/
+conda-meta/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Временные файлы и кэш (НЕ коммитим)
+unsloth_compiled_cache/
+*.log
+
+# Модели (НЕ коммитим, они тяжелые)
+models/
+
+# Данные заказчика (РАСКОММЕНТИРУЙ СТРОКУ НИЖЕ, если НЕ хочешь коммитить исходные jsonl)
+# data/
