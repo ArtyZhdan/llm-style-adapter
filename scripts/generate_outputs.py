@@ -8,8 +8,22 @@ MODEL_ID = "unsloth/Qwen2.5-1.5B-Instruct-bnb-4bit"
 LORA_TYPE1 = "models/lora_type1"
 LORA_TYPE2 = "models/lora_type2"
 TEST_DATA_PATH = "data/test_inputs_chatml.jsonl"
-OUTPUT_TYPE1 = "outputs_type1.txt"
-OUTPUT_TYPE2 = "outputs_type2.txt"
+OUTPUT_TYPE1 = "outputs_lora_type1.txt"
+OUTPUT_TYPE2 = "outputs_lora_type2.txt"
+
+# Фиксируем seed, чтобы результаты генерации можно было воспроизвести
+torch.manual_seed(42)
+
+# Стандартный ChatML-шаблон Qwen2.5 (с ролями) — тот же, что используется
+# при обучении. В папках адаптеров сохранён шаблон БЕЗ ролей
+# (chat_template.jinja) — если его использовать, модель на инференсе
+# получает формат, отличный от обучения, и ответы ломаются.
+CHAT_TEMPLATE = (
+    "{% for message in messages %}"
+    "{{ '<|im_start|>' + message['role'] + '\\n' + message['content'] + '<|im_end|>' + '\\n' }}"
+    "{% endfor %}"
+    "{% if add_generation_prompt %}{{ '<|im_start|>assistant\\n' }}{% endif %}"
+)
 
 # Системные промпты (те же, что и для бейзлайна, но теперь модель их выполнит идеально)
 SYSTEM_PROMPT_TYPE1 = "Ты — аналитик финансового Telegram-канала @banki_oil. Твой стиль: сухой, ироничный, с использованием профессионального сленга, без воды. Делай акцент на цифрах и фактах. В конце добавляй тег канала."
@@ -26,6 +40,8 @@ def load_model_with_adapter(adapter_path):
         load_in_4bit=True
     )
     FastLanguageModel.for_inference(model) # Включаем режим быстрого инференса
+    # Переопределяем шаблон на стандартный ChatML с ролями (см. CHAT_TEMPLATE выше)
+    tokenizer.chat_template = CHAT_TEMPLATE
     print("✅ Модель и адаптер загружены.")
     return model, tokenizer
 
@@ -90,4 +106,4 @@ if __name__ == "__main__":
     generate_for_style(model2, tokenizer2, test_data, SYSTEM_PROMPT_TYPE2, OUTPUT_TYPE2)
     
     print("\n🎉 Генерация всех результатов завершена!")
-    print("Проверь файлы outputs_type1.txt и outputs_type2.txt в корне проекта.")
+    print("Проверь файлы outputs_lora_type1.txt и outputs_lora_type2.txt в корне проекта.")
