@@ -17,9 +17,11 @@
 - scripts/prepare_data.py — конвертация data/*.jsonl в ChatML (*_chatml.jsonl).
 - scripts/generate_baseline.py — Zero-Shot бейзлайн (data/baseline_type*.txt).
 - scripts/train_lora.py и scripts/train_lora_type2.py — обучение LoRA-адаптеров
-  в models/lora_type1 и models/lora_type2. Файлы намеренно одинаковые:
+  v2 в models/lora_type1_v2 и models/lora_type2_v2 (на данных
+  data/train_type*_final_chatml.jsonl). Файлы намеренно одинаковые:
   правки, относящиеся к обучению, вноси в оба.
-- scripts/generate_outputs.py — инференс LoRA (outputs_type*.txt в корне).
+- scripts/generate_outputs.py — инференс LoRA (outputs_lora_type*_v2_t02.txt
+  в корне; температура 0.2, seed 42).
 - scripts/generate_fewshot.py — Few-Shot инференс (outputs_fewshot_type1.txt).
 - data/ — исходные данные заказчика (jsonl); models/ — адаптеры (в .gitignore,
   не коммитим); отчёт с результатами и выводами — RESULTS.md.
