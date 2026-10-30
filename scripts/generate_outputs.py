@@ -5,11 +5,11 @@ from unsloth import FastLanguageModel
 
 # 1. Конфигурация
 MODEL_ID = "unsloth/Qwen2.5-1.5B-Instruct-bnb-4bit"
-LORA_TYPE1 = "models/lora_type1_v2"
-LORA_TYPE2 = "models/lora_type2_v2"
+LORA_TYPE1 = "models/lora_type1_v3_3b"
+LORA_TYPE2 = "models/lora_type2_v3_3b"
 TEST_DATA_PATH = "data/test_inputs_chatml.jsonl"
-OUTPUT_TYPE1 = "outputs_lora_type1_v2_t02.txt"
-OUTPUT_TYPE2 = "outputs_lora_type2_v2_t02.txt"
+OUTPUT_TYPE1 = "outputs_lora_type1_v3_3b_t02.txt"
+OUTPUT_TYPE2 = "outputs_lora_type2_v3_3b_t02.txt"
 
 # Параметры генерации: температура 0.2 — лучший баланс для этой модели.
 # Проверено экспериментально: 0.7 даёт мусор и галлюцинации, 0.45 —
