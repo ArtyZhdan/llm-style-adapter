@@ -5,11 +5,16 @@ from unsloth import FastLanguageModel
 
 # 1. Конфигурация
 MODEL_ID = "unsloth/Qwen2.5-1.5B-Instruct-bnb-4bit"
-LORA_TYPE1 = "models/lora_type1"
-LORA_TYPE2 = "models/lora_type2"
+LORA_TYPE1 = "models/lora_type1_v2"
+LORA_TYPE2 = "models/lora_type2_v2"
 TEST_DATA_PATH = "data/test_inputs_chatml.jsonl"
-OUTPUT_TYPE1 = "outputs_lora_type1.txt"
-OUTPUT_TYPE2 = "outputs_lora_type2.txt"
+OUTPUT_TYPE1 = "outputs_lora_type1_v2_t02.txt"
+OUTPUT_TYPE2 = "outputs_lora_type2_v2_t02.txt"
+
+# Параметры генерации: температура 0.2 — лучший баланс для этой модели.
+# Проверено экспериментально: 0.7 даёт мусор и галлюцинации, 0.45 —
+# возвращает выдуманные числа (0,6%→0,9%, «30 банкоматов»), 0.2 — точно.
+GENERATION_TEMPERATURE = 0.2
 
 # Фиксируем seed, чтобы результаты генерации можно было воспроизвести
 torch.manual_seed(42)
@@ -25,9 +30,11 @@ CHAT_TEMPLATE = (
     "{% if add_generation_prompt %}{{ '<|im_start|>assistant\\n' }}{% endif %}"
 )
 
-# Системные промпты (те же, что и для бейзлайна, но теперь модель их выполнит идеально)
-SYSTEM_PROMPT_TYPE1 = "Ты — аналитик финансового Telegram-канала @banki_oil. Твой стиль: сухой, ироничный, с использованием профессионального сленга, без воды. Делай акцент на цифрах и фактах. В конце добавляй тег канала."
-SYSTEM_PROMPT_TYPE2 = "Ты — редактор городского новостного Telegram-канала @moscowach. Твой стиль: начинай с цепляющего заголовка с эмодзи, пиши короткими абзацами, используй простой и живой язык, выделяй главное жирным."
+# Системные промпты: те же короткие инструкции, что в обучающих данных
+# (единый формат train/inference — решение шага 0). Базовый few-shot и
+# baseline-скрипты не трогаем: это фиксированные точки сравнения.
+SYSTEM_PROMPT_TYPE1 = "Перепиши новостной текст в стиле Telegram-канала @banki_oil."
+SYSTEM_PROMPT_TYPE2 = "Перепиши новостной текст в стиле Telegram-канала @moscowach: эмодзи, **жирный заголовок**, короткие абзацы."
 
 def load_model_with_adapter(adapter_path):
     """Загружает базовую модель и применяет к ней указанный LoRA-адаптер."""
@@ -67,7 +74,7 @@ def generate_for_style(model, tokenizer, data, system_prompt, output_path):
             outputs = model.generate(
                 **inputs,
                 max_new_tokens=256,
-                temperature=0.7,
+                temperature=GENERATION_TEMPERATURE,
                 top_p=0.9,
                 do_sample=True,
                 pad_token_id=tokenizer.eos_token_id
