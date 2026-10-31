@@ -4,16 +4,19 @@ from trl import SFTTrainer, SFTConfig
 from datasets import load_dataset
 
 # 1. Конфигурация
-# Эксперимент v3: модель посильнее (3B) на тех же данных и гиперпараметрах,
-# что и v2 (1.5B) — меняется только MODEL_ID, чтобы сравнение было честным.
+# Финальный адаптер стиля 2 (@moscowach): Qwen2.5-3B + LoRA.
+# Датасет: все 160 примеров (100 + 50 новых коротких + 10 длинных),
+# финальным взят чекпоинт 3-й эпохи (checkpoint-60) — он чище 4-й.
+# ВНИМАНИЕ: повторный запуск ПЕРЕЗАПИШЕТ адаптеры в models/lora_type2_v5_3b —
+# для экспериментов меняйте OUTPUT_DIR!
 MODEL_ID = "unsloth/Qwen2.5-3B-Instruct-bnb-4bit"  # 4-битная версия для экономии памяти
 MAX_SEQ_LENGTH = 1024  # Максимальная длина контекста (с запасом)
 LORA_RANK = 16  # Ранг LoRA (чем выше, тем больше параметров обучаем, но и больше памяти)
 LORA_ALPHA = 32  # Коэффициент масштабирования (обычно 2 * rank)
 LORA_DROPOUT = 0.0  # Dropout выключен: на малом датасете мешает, а fused-ядра Unsloth требуют 0.0
 TARGET_MODULES = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
-DATA_PATH = "data/train_type2_final_chatml.jsonl"  # Те же данные, что для v2
-OUTPUT_DIR = "models/lora_type2_v3_3b"  # Не перезаписываем адаптеры v1 и v2!
+DATA_PATH = "data/train_type2_chatml.jsonl"  # Собирается scripts/prepare_data.py (short+long)
+OUTPUT_DIR = "models/lora_type2_v5_3b"  # Финал = checkpoint-60 (эпоха 3); перезапись опасна!
 
 # Стандартный ChatML-шаблон Qwen2.5 (с ролями) — тот же, что на инференсе.
 # Явно фиксируем, чтобы обучение и генерация гарантированно видели один формат.
@@ -31,7 +34,13 @@ def load_model_and_tokenizer():
         model_name=MODEL_ID,
         max_seq_length=MAX_SEQ_LENGTH,
         dtype=None,  # Автоматически определит float16/bfloat16
-        load_in_4bit=True  # 4-битное квантование для экономии VRAM
+        load_in_4bit=True,  # 4-битное квантование для экономии VRAM
+        # Длинные примеры (до ~680 токенов) дают пик памяти на этапе loss:
+        # обязателен запуск с UNSLOTH_CE_LOSS_TARGET_GB=0.3 (чанкование
+        # fused cross-entropy), иначе падение "No GPU memory for fused
+        # cross entropy" на первом длинном батче. offload_layers — страховка
+        # (планировщик для 3B обычно решает, что выгружать нечего).
+        offload_layers="auto"
     )
     tokenizer.chat_template = CHAT_TEMPLATE  # Единый формат train/inference
 

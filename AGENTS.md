@@ -1,38 +1,47 @@
 # О проекте
 
-- Назначение: адаптация русскоязычной LLM (Qwen2.5-1.5B-Instruct) под стилистику
-  Telegram-каналов двух типов (аналитика/финансы, городской новостник) двумя
-  способами: LoRA Fine-Tuning (Unsloth/PEFT) и Few-Shot In-Context Learning.
-- Стек: Python 3.10, PyTorch 2.5.1+cu121, transformers>=4.46.1, trl 0.12.1,
-  peft 0.13.2, datasets 3.1.0, accelerate 1.1.1, bitsandbytes 0.44.1.
-  Unsloth ставится отдельно с GitHub (см. README), в requirements.txt его нет.
-  Обязателен GPU с CUDA (минимум ~6 GB VRAM, обучение — в 4-битном квантовании).
-- Запуск: скрипты запускаются из корня проекта командой `python scripts/<имя>.py`;
-  порядок пайплайна и установка окружения (conda env `llm_clean`) — в README.md.
+- Назначение: адаптация Qwen2.5-3B-Instruct (4-bit, Unsloth) под стилистику
+  двух Telegram-каналов (type1 = @banki_oil, ироничная аналитика, тег
+  `@banki_oil` в конце; type2 = @moscowach, эмодзи + **жирный заголовок** +
+  короткие абзацы) методом QLoRA. Один base, два независимых адаптера;
+  стиль выбирается системным промптом.
+- Стек: Python 3.10, PyTorch 2.5.1+cu121, transformers 5.17.0, trl 1.14.2,
+  peft 0.21.2, datasets 4.8.5, accelerate 1.15.0, bitsandbytes 0.50.2.
+  Unsloth ставится отдельно с GitHub (в requirements.txt его нет).
+  Обязателен GPU с CUDA (обучение — в 4-битном квантовании, минимум ~6 GB VRAM;
+  на 6 GB запуск обучения только с UNSLOTH_CE_LOSS_TARGET_GB=0.3).
+- Запуск: скрипты запускаются из корня проекта командой `python scripts/<имя>.py`
+  (в Windows/Git Bash python — из conda env `llm_clean`: голый `python` может
+  резолвиться в другое окружение); порядок пайплайна и установка окружения —
+  в README.md.
 - Тесты: не настроены. Проверка изменений — ручной запуск затронутых скриптов.
 - Линтер и форматирование: не настроены.
 
 # Структура
 
-- scripts/prepare_data.py — конвертация data/*.jsonl в ChatML (*_chatml.jsonl).
-- scripts/generate_baseline.py — Zero-Shot бейзлайн (data/baseline_type*.txt).
-- scripts/train_lora.py и scripts/train_lora_type2.py — обучение LoRA-адаптеров
-  v2 в models/lora_type1_v2 и models/lora_type2_v2 (на данных
-  data/train_type*_final_chatml.jsonl). Файлы намеренно одинаковые:
-  правки, относящиеся к обучению, вноси в оба.
-- scripts/generate_outputs.py — инференс LoRA (outputs_lora_type*_v2_t02.txt
-  в корне; температура 0.2, seed 42).
-- scripts/generate_fewshot.py — Few-Shot инференс (outputs_fewshot_type1.txt).
-- data/ — исходные данные заказчика (jsonl); models/ — адаптеры (в .gitignore,
-  не коммитим); отчёт с результатами и выводами — RESULTS.md.
+- scripts/prepare_data.py — сборка ChatML (short+long → train_*_chatml,
+  test_all → test_all_chatml) перед обучением/оценкой.
+- scripts/train_lora_3b.py и scripts/train_lora_type2_3b.py — обучение
+  адаптеров 3B (файлы намеренно одинаковые: правки обучения вносить в оба).
+  ВНИМАНИЕ: пишут в папки финальных адаптеров (models/lora_type1_v3_3b,
+  models/lora_type2_v5_3b) — для экспериментов менять OUTPUT_DIR.
+- scripts/generate_outputs.py — инференс финальной связки на
+  data/test_all_chatml.jsonl (температура 0.2, seed 42; вывод в
+  outputs_lora_type*_final_t02.txt).
+- data/ — исходные данные заказчика (train_type*.jsonl, test_inputs.jsonl),
+  датасеты (train_type*_short.jsonl — 150 примеров,
+  train_type*_long.jsonl — 10 длинных), расширенный тест (test_all.jsonl,
+  25 новостей), собранные ChatML-файлы, инструкции генерации данных.
+- models/ — адаптеры (в .gitignore, не коммитим, восстановление только
+  переобучением); отчёт с результатами — RESULTS.md.
 
 # Правила работы
 
 - Перед сложными изменениями сначала изучи проект и предложи план.
 - Не изменяй архитектуру и не добавляй зависимости без согласования.
 - Не обновляй и не меняй версии зафиксированных зависимостей (torch,
-  transformers, bitsandbytes и др.): связка версий хрупкая, окружение —
-  Windows + CUDA (подробности в RESULTS.md, раздел 4.1).
+  transformers, trl, peft и др.): связка версий хрупкая, окружение —
+  Windows + CUDA.
 - Unsloth не добавляй в requirements.txt — он устанавливается отдельной
   командой из GitHub (см. README.md).
 - Не исправляй код, не связанный с текущей задачей.
@@ -42,10 +51,10 @@
 - Не изменяй .env, секреты, CI/CD и конфигурацию production без явного разрешения.
 - Не выполняй миграции и не удаляй данные без явного разрешения.
 - Не делай git commit и git push без моей просьбы. Учти: data/*.jsonl
-  (данные заказчика) отслеживаются git и, по ссылке в RESULTS.md, уже лежат
-  в публичном репозитории — не добавляй туда новые чувствительные данные.
-- Скрипты prepare_data/generate_* перезаписывают outputs_*.txt и
-  data/*_chatml.jsonl без предупреждения, а train_* — models/lora_type*
+  отслеживаются git и лежат в публичном репозитории — не добавляй туда
+  новые чувствительные данные.
+- prepare_data.py перезаписывает data/*_chatml.jsonl без предупреждения,
+  generate_outputs.py — outputs_*.txt, train_* — models/lora_type*
   (не под git, восстановление невозможно). Запускай их только осознанно.
 - Скрипты обучения и генерации требуют GPU и скачивают модели с HuggingFace.
 - После изменений запускай соответствующие тесты и линтер (не настроены —

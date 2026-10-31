@@ -4,16 +4,16 @@ import gc
 from unsloth import FastLanguageModel
 
 # 1. Конфигурация
-MODEL_ID = "unsloth/Qwen2.5-1.5B-Instruct-bnb-4bit"
-LORA_TYPE1 = "models/lora_type1_v3_3b"
-LORA_TYPE2 = "models/lora_type2_v3_3b"
-TEST_DATA_PATH = "data/test_inputs_chatml.jsonl"
-OUTPUT_TYPE1 = "outputs_lora_type1_v3_3b_t02.txt"
-OUTPUT_TYPE2 = "outputs_lora_type2_v3_3b_t02.txt"
+MODEL_ID = "unsloth/Qwen2.5-1.5B-Instruct-bnb-4bit"  # Не используется: base берётся из adapter_config
+LORA_TYPE1 = "models/lora_type1_v3_3b"                # Финальный адаптер стиля 1 (banki_oil)
+LORA_TYPE2 = "models/lora_type2_v5_3b/checkpoint-60"  # Финальный адаптер стиля 2 (moscowach, эпоха 3)
+TEST_DATA_PATH = "data/test_all_chatml.jsonl"  # Расширенный тест: 25 новостей
+OUTPUT_TYPE1 = "outputs_lora_type1_final_t02.txt"
+OUTPUT_TYPE2 = "outputs_lora_type2_final_t02.txt"
 
-# Параметры генерации: температура 0.2 — лучший баланс.
-# Проверено: 0.3 у 3B слегка оживляет текст, но возвращает мелкие выдумки
-# («сохранили высокий уровень концентрации», «достигла 30%») — откатили.
+# Параметры генерации: температура 0.2 — лучший баланс точности и стиля.
+# Проверено: 0.7 даёт мусор и иностранные токены, 0.3–0.45 возвращают
+# уверенные числовые выдумки. Более горячий сэмплинг нежелателен.
 GENERATION_TEMPERATURE = 0.2
 
 # Фиксируем seed, чтобы результаты генерации можно было воспроизвести
@@ -31,8 +31,8 @@ CHAT_TEMPLATE = (
 )
 
 # Системные промпты: те же короткие инструкции, что в обучающих данных
-# (единый формат train/inference — решение шага 0). Базовый few-shot и
-# baseline-скрипты не трогаем: это фиксированные точки сравнения.
+# (единый формат train/inference). Шаблон ChatML с ролями принудительно
+# переопределяем ниже: в папках адаптеров сохранён шаблон без ролей.
 SYSTEM_PROMPT_TYPE1 = "Перепиши новостной текст в стиле Telegram-канала @banki_oil."
 SYSTEM_PROMPT_TYPE2 = "Перепиши новостной текст в стиле Telegram-канала @moscowach: эмодзи, **жирный заголовок**, короткие абзацы."
 
@@ -113,4 +113,4 @@ if __name__ == "__main__":
     generate_for_style(model2, tokenizer2, test_data, SYSTEM_PROMPT_TYPE2, OUTPUT_TYPE2)
     
     print("\n🎉 Генерация всех результатов завершена!")
-    print("Проверь файлы outputs_lora_type1.txt и outputs_lora_type2.txt в корне проекта.")
+    print("Проверь файлы outputs_lora_type1_final_t02.txt и outputs_lora_type2_final_t02.txt в корне проекта.")
