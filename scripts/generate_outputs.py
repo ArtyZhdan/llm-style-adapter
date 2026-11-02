@@ -81,7 +81,7 @@ def generate_for_style(model, tokenizer, data, system_prompt, output_path):
         with torch.no_grad():
             outputs = model.generate(
                 **inputs,
-                max_new_tokens=256,
+                max_new_tokens=384,  # Запас для длинных новостей: на 256 обрывался пример 20 (терялся тег)
                 temperature=GENERATION_TEMPERATURE,
                 top_p=0.9,
                 do_sample=True,
