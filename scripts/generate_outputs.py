@@ -7,11 +7,11 @@ from unsloth import FastLanguageModel
 # 1. Конфигурация
 # Через переменные окружения можно подменить адаптеры/файлы вывода и
 # ограничить набор стилей (например, STYLES=type1 — только один прогон):
-#   STYLES=type1 LORA_TYPE1=models/lora_type1_7b_colab \
+#   STYLES=type1 LORA_TYPE1=models/lora_type1_7b \
 #   OUTPUT_TYPE1=outputs_lora_type1_7b_t02.txt python scripts/generate_outputs.py
 MODEL_ID = "unsloth/Qwen2.5-1.5B-Instruct-bnb-4bit"  # Не используется: base берётся из adapter_config
-LORA_TYPE1 = os.environ.get("LORA_TYPE1", "models/lora_type1_v3_3b")                # Финальный адаптер стиля 1 (banki_oil)
-LORA_TYPE2 = os.environ.get("LORA_TYPE2", "models/lora_type2_v5_3b/checkpoint-60")  # Финальный адаптер стиля 2 (moscowach, эпоха 3)
+LORA_TYPE1 = os.environ.get("LORA_TYPE1", "models/lora_type1_7b")  # Финальный адаптер стиля 1 (banki_oil, 7B, эпоха 4)
+LORA_TYPE2 = os.environ.get("LORA_TYPE2", "models/lora_type2_7b")  # Финальный адаптер стиля 2 (moscowach, 7B, эпоха 3)
 TEST_DATA_PATH = "data/test_all_chatml.jsonl"  # Расширенный тест: 25 новостей
 OUTPUT_TYPE1 = os.environ.get("OUTPUT_TYPE1", "outputs_lora_type1_final_t02.txt")
 OUTPUT_TYPE2 = os.environ.get("OUTPUT_TYPE2", "outputs_lora_type2_final_t02.txt")

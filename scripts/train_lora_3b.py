@@ -4,13 +4,10 @@ from trl import SFTTrainer, SFTConfig
 from datasets import load_dataset
 
 # 1. Конфигурация
-# Финальный адаптер стиля 1 (@banki_oil): Qwen2.5-3B + LoRA.
-# Финальный адаптер обучен на первых 100 примерах train_type1_short
-# (25 исправленных исходных + 75 сгенерированных); prepare_data.py собирает
-# chatml из short+long целиком (160) — для точного воспроизведения возьмите
-# первые 100 строк.
-# ВНИМАНИЕ: повторный запуск ПЕРЕЗАПИШЕТ финальный адаптер — для
-# экспериментов меняйте OUTPUT_DIR!
+# Локальный 3B-пайплайн (исторический): Qwen2.5-3B + LoRA.
+# ФИНАЛЬНЫЕ адаптеры проекта (7B) обучаются на Colab — см. colab/colab_train_lora.ipynb;
+# эти скрипты оставлены для воспроизводимости 3B-экспериментов на 6 ГБ VRAM.
+# ВНИМАНИЕ: повторный запуск ПЕРЕЗАПИШЕТ адаптер в OUTPUT_DIR!
 MODEL_ID = "unsloth/Qwen2.5-3B-Instruct-bnb-4bit"  # 4-битная версия для экономии памяти
 MAX_SEQ_LENGTH = 1024  # Максимальная длина контекста (с запасом)
 LORA_RANK = 16  # Ранг LoRA (чем выше, тем больше параметров обучаем, но и больше памяти)
@@ -18,7 +15,7 @@ LORA_ALPHA = 32  # Коэффициент масштабирования (обы
 LORA_DROPOUT = 0.0  # Dropout выключен: на малом датасете мешает, а fused-ядра Unsloth требуют 0.0
 TARGET_MODULES = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
 DATA_PATH = "data/train_type1_chatml.jsonl"  # Собирается scripts/prepare_data.py (short+long)
-OUTPUT_DIR = "models/lora_type1_v3_3b"  # ФИНАЛЬНЫЙ адаптер: перезапись = потерять его!
+OUTPUT_DIR = "models/lora_type1_3b"  # Локальный 3B-прогон; финальные 7B-адаптеры — через colab/
 
 # Стандартный ChatML-шаблон Qwen2.5 (с ролями) — тот же, что на инференсе.
 # Явно фиксируем, чтобы обучение и генерация гарантированно видели один формат.

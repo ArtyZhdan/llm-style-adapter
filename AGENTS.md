@@ -1,39 +1,51 @@
 # О проекте
 
-- Назначение: адаптация Qwen2.5-3B-Instruct (4-bit, Unsloth) под стилистику
+- Назначение: адаптация Qwen2.5-7B-Instruct (4-bit, Unsloth) под стилистику
   двух Telegram-каналов (type1 = @banki_oil, ироничная аналитика, тег
   `@banki_oil` в конце; type2 = @moscowach, эмодзи + **жирный заголовок** +
   короткие абзацы) методом QLoRA. Один base, два независимых адаптера;
   стиль выбирается системным промптом.
+  Финальные адаптеры: `models/lora_type1_7b` (эпоха 4) и `models/lora_type2_7b`
+  (эпоха 3), оба обучены на полных 160 примерах своего стиля.
 - Стек: Python 3.10, PyTorch 2.5.1+cu121, transformers 5.17.0, trl 1.14.2,
   peft 0.21.2, datasets 4.8.5, accelerate 1.15.0, bitsandbytes 0.50.2.
-  Unsloth ставится отдельно с GitHub (в requirements.txt его нет).
-  Обязателен GPU с CUDA (обучение — в 4-битном квантовании, минимум ~6 GB VRAM;
-  на 6 GB запуск обучения только с UNSLOTH_CE_LOSS_TARGET_GB=0.3).
+  Unsloth (с unsloth_zoo) ставится отдельной командой с GitHub — в
+  requirements.txt его нет. Обучение финальных 7B-адаптеров — на Google Colab
+  (T4, 16 ГБ) через `colab/colab_train_lora.ipynb`; локально (RTX 2060, 6 ГБ)
+  доступны инференс 7B (с offload слоёв, медленно) и исторический 3B-пайплайн
+  обучения.
 - Запуск: скрипты запускаются из корня проекта командой `python scripts/<имя>.py`
   (в Windows/Git Bash python — из conda env `llm_clean`: голый `python` может
   резолвиться в другое окружение); порядок пайплайна и установка окружения —
-  в README.md.
+  в README.md. Консольный вывод скриптов — UTF-8: запускать с
+  `PYTHONIOENCODING=utf-8`, иначе print-ы с эмодзи падают с UnicodeEncodeError.
 - Тесты: не настроены. Проверка изменений — ручной запуск затронутых скриптов.
 - Линтер и форматирование: не настроены.
 
 # Структура
 
 - scripts/prepare_data.py — сборка ChatML (short+long → train_*_chatml,
-  test_all → test_all_chatml) перед обучением/оценкой.
-- scripts/train_lora_3b.py и scripts/train_lora_type2_3b.py — обучение
-  адаптеров 3B (файлы намеренно одинаковые: правки обучения вносить в оба).
-  ВНИМАНИЕ: пишут в папки финальных адаптеров (models/lora_type1_v3_3b,
-  models/lora_type2_v5_3b) — для экспериментов менять OUTPUT_DIR.
-- scripts/generate_outputs.py — инференс финальной связки на
-  data/test_all_chatml.jsonl (температура 0.2, seed 42; вывод в
-  outputs_lora_type*_final_t02.txt).
+  test_all → test_all_chatml) перед обучением/оценкой. Поддерживает
+  подвыборки вида "file.jsonl:N" (первые N строк).
+- scripts/train_lora_3b.py и scripts/train_lora_type2_3b.py — локальный
+  3B-пайплайн (исторический, для 6 ГБ VRAM); пишут в models/lora_type*_3b.
+  На 6 ГБ запускать только с UNSLOTH_CE_LOSS_TARGET_GB=0.3. Файлы намеренно
+  одинаковые по структуре: правки обучения вносить в оба. ФИНАЛЬНЫЕ 7B-адаптеры
+  этими скриптами не воспроизводятся — только через colab-ноутбук.
+- scripts/generate_outputs.py — инференс на data/test_all_chatml.jsonl.
+  Дефолты — финальные 7B-адаптеры; через env можно подменить пути и выбрать
+  стиль: LORA_TYPE1/2, OUTPUT_TYPE1/2, STYLES=type1,type2. Параметры:
+  температура 0.2, seed 42, max_new_tokens=384. Для 7B на 6 ГБ использует
+  offload_layers="auto" (~20 мин на 25 новостей).
+- colab/ — ноутбук обучения на T4 (colab_train_lora.ipynb) и инструкция
+  (README.md). Гиперпараметры в ноутбуке соответствуют RESULTS.md.
 - data/ — исходные данные заказчика (train_type*.jsonl, test_inputs.jsonl),
-  датасеты (train_type*_short.jsonl — 150 примеров,
-  train_type*_long.jsonl — 10 длинных), расширенный тест (test_all.jsonl,
-  25 новостей), собранные ChatML-файлы, инструкции генерации данных.
+  датасеты (train_type*_short.jsonl — 150 примеров, train_type*_long.jsonl —
+  10 длинных), расширенный тест (test_all.jsonl, 25 новостей), собранные
+  ChatML-файлы, инструкции генерации данных.
 - models/ — адаптеры (в .gitignore, не коммитим, восстановление только
-  переобучением); отчёт с результатами — RESULTS.md.
+  переобучением). Лежат только финальные lora_type1_7b и lora_type2_7b;
+  отчёт с результатами — RESULTS.md.
 
 # Правила работы
 
@@ -41,7 +53,7 @@
 - Не изменяй архитектуру и не добавляй зависимости без согласования.
 - Не обновляй и не меняй версии зафиксированных зависимостей (torch,
   transformers, trl, peft и др.): связка версий хрупкая, окружение —
-  Windows + CUDA.
+  Windows + CUDA; версии для Colab зафиксированы в colab-ноутбуке.
 - Unsloth не добавляй в requirements.txt — он устанавливается отдельной
   командой из GitHub (см. README.md).
 - Не исправляй код, не связанный с текущей задачей.
@@ -57,6 +69,8 @@
   generate_outputs.py — outputs_*.txt, train_* — models/lora_type*
   (не под git, восстановление невозможно). Запускай их только осознанно.
 - Скрипты обучения и генерации требуют GPU и скачивают модели с HuggingFace.
+- Экспериментальные ветки не мержим в main без сравнения метрик на тех же
+  25 тестовых новостях (temp 0.2, seed 42) и обновления RESULTS.md.
 - После изменений запускай соответствующие тесты и линтер (не настроены —
   проверяй ручным запуском затронутого скрипта).
 

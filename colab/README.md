@@ -38,15 +38,17 @@
 ## После обучения (локально)
 
 ```bash
-# распаковать архив в models/lora_type1_full_7b_colab, затем:
+# распаковать архив в models/lora_type1_7b (вывод ноутбука type1_full), затем:
 PYTHONIOENCODING=utf-8 STYLES=type1 \
-  LORA_TYPE1=models/lora_type1_full_7b_colab \
-  OUTPUT_TYPE1=outputs_lora_type1_full_7b_t02.txt \
+  LORA_TYPE1=models/lora_type1_7b \
+  OUTPUT_TYPE1=outputs_lora_type1_final_t02.txt \
   python scripts/generate_outputs.py
 ```
 
-Сравнение — с эталоном 3B: `outputs_lora_type1_final_t02.txt` (16/25 чистых;
-для type2 — `outputs_lora_type2_final_t02.txt`, 18/25), те же 25 тестовых
+Финальные адаптеры проекта лежат в `models/lora_type1_7b` (вывод `type1_full`)
+и `models/lora_type2_7b` (вывод `type2`, в папке — веса 3-й эпохи). Сравнение —
+с `outputs_lora_type1_final_t02.txt` (24/25 чистых) и
+`outputs_lora_type2_final_t02.txt` (~25/25): те же 25 тестовых
 новостей, temp 0.2, seed 42. Проверяем: числа без выдумок, добивки/заголовки,
 деградации на других примерах.
 
